@@ -1,10 +1,10 @@
-# vpp-hello.c
+# vhello.c
 This is a hello.c  example for vpp api client.
 
 ## Compile
 
 ```
-daniel@hello:~/vpp-hello.c$ mkdir build && cd build
-daniel@hello:~/vpp-hello.c/build$ cmake ..
-daniel@hello:~/vpp-hello.c/build$ cmake --build .
+daniel@hello:~/vhello.c$ mkdir build && cd build
+daniel@hello:~/vhello.c/build$ cmake ..
+daniel@hello:~/vhello.c/build$ cmake --build .
 ```

@@ -15,18 +15,28 @@ cmake_minimum_required(VERSION 3.1...3.26)
 
 set(CMAKE_C_COMPILER_NAMES clang gcc cc)
 
-project(vpp-hello
+set(install_vpp_dir ${CMAKE_SOURCE_DIR}/../install-vpp_debug-native/vpp)
+
+project(vhello
 	VERSION 0.1
 	DESCRIPTION "An example project with CMake"
-	LANGUAGES CXX)
+)
 
-add_library(libvpp-hello
- 	src/hello.cpp
-  	src/hello.hpp)
+include_directories(${install_vpp_dir}/include)
+link_directories(${install_vpp_dir}/lib/x86_64-linux-gnu)
 
-add_executable(vpp-hello
-  	src/main.cpp)
+add_library(vlibhello
+	SHARED
+ 	src/hello.c
+  	src/hello.h
+)
 
-target_link_libraries(vpp-hello
+add_executable(vhello
+  	src/main.c
+)
+
+target_link_libraries(vhello
   	PRIVATE
-  	libvpp-hello)
+	vlibhello
+	vppinfra vlibmemoryclient vapiclient	
+)
