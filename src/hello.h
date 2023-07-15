@@ -15,14 +15,10 @@
 #define _HELLO_H_
 
 #include <stdio.h>
+#include <endian.h>
 #include <stdlib.h>
 #include <vppinfra/string.h>
 #include <vapi/vapi.h>
-#include <vapi/memclnt.api.vapi.h>
-#include <vapi/vlib.api.vapi.h>
-#include <vapi/vpe.api.vapi.h>
-#include <vapi/interface.api.vapi.h>
-#include <vapi/l2.api.vapi.h>
 
 typedef struct {
 	bool last_called;

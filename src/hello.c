@@ -13,9 +13,17 @@
 
 #include "hello.h"
 
+#include <vnet/ip/ip6_packet.h>
+#include <vapi/memclnt.api.vapi.h>
+#include <vapi/vlib.api.vapi.h>
+#include <vapi/vpe.api.vapi.h>
+#include <vapi/interface.api.vapi.h>
+#include <vapi/sr.api.vapi.h>
+
+
 DEFINE_VAPI_MSG_IDS_VPE_API_JSON;
 DEFINE_VAPI_MSG_IDS_INTERFACE_API_JSON;
-DEFINE_VAPI_MSG_IDS_L2_API_JSON;
+DEFINE_VAPI_MSG_IDS_SR_API_JSON;
 
 vapi_error_e
 show_version_cb (vapi_ctx_t ctx, void *caller_ctx,
@@ -47,10 +55,14 @@ sw_interface_dump_cb (struct vapi_ctx_s *ctx, void *callback_ctx,
 	sw_interface_dump_ctx *dctx = callback_ctx;
 	if (is_last) {
 		dctx->last_called = true;
-	}
-	else {
-		printf ("show_interface: [%u]: %s\n", reply->sw_if_index,
-				reply->interface_name);
+	} else {
+		printf ("show_interface: [%u]: %s\t | "
+				"%02x:%02x:%02x:%02x:%02x:%02x |%d \n",
+				reply->sw_if_index, reply->interface_name,
+				reply->l2_address[0], reply->l2_address[1],
+				reply->l2_address[2], reply->l2_address[3],
+				reply->l2_address[4], reply->l2_address[5],
+				reply->link_mtu);
 		size_t i = 0;
 		for (i = 0; i < dctx->num_ifs; ++i) {
 			if (dctx->sw_if_indexes[i] == reply->sw_if_index) {
@@ -70,14 +82,40 @@ show_interfaces(vapi_ctx_t ctx) {
 	clib_memset (&sw_if_indexes, 0xff, sizeof (sw_if_indexes));
 	bool seen[num_ifs];
 	sw_interface_dump_ctx dctx = { false, num_ifs, sw_if_indexes, seen, 0 };
-
 	vapi_msg_sw_interface_dump *dump = vapi_alloc_sw_interface_dump (ctx);
+
 	GO(vapi_sw_interface_dump (ctx, dump, sw_interface_dump_cb, &dctx));
 
 	return rv;
 }
 
-const char * 
+vapi_error_e
+sr_localsids_dump_cb (struct vapi_ctx_s *ctx, void *callback_ctx,
+		      vapi_error_e rv, bool is_last,
+		      vapi_payload_sr_localsids_details * reply) {
+	if (is_last) {
+		return VAPI_OK;
+	}
+	ip6_address_t *addr = (ip6_address_t *)reply->addr;
+	printf ("show_sr_localsids: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n"
+		" behavior\t: %u\n iface/table\t: %u\n",
+		addr->as_u16[0], addr->as_u16[1], addr->as_u16[2], addr->as_u16[3],
+		addr->as_u16[4], addr->as_u16[5], addr->as_u16[6], addr->as_u16[7],
+		reply->behavior, reply->xconnect_iface_or_vrf_table);
+	return VAPI_OK;
+}
+
+vapi_error_e
+show_local_sids(vapi_ctx_t ctx) {
+	vapi_error_e rv = 0;
+	vapi_msg_sr_localsids_dump *dump = vapi_alloc_sr_localsids_dump (ctx);
+
+	GO(vapi_sr_localsids_dump (ctx, dump, sr_localsids_dump_cb, NULL));
+
+	return rv;
+}
+
+const char *
 hello() {
 	vapi_ctx_t ctx;
 	static char *app_name = "vhello";
@@ -91,9 +129,9 @@ hello() {
    	if (rv != VAPI_OK) {
 		return "alloc error";
 	}
-	rv = vapi_connect (ctx, app_name, api_prefix, 
-				   	   max_outstanding_requests, response_queue_size, 
-			   		   VAPI_MODE_BLOCKING, true);
+	rv = vapi_connect (ctx, app_name, api_prefix,
+					max_outstanding_requests, response_queue_size,
+					VAPI_MODE_BLOCKING, true);
 	if (rv != VAPI_OK) {
 		return "connect error";
 	}
@@ -102,6 +140,8 @@ hello() {
 	show_version (ctx);
 	printf ("\n");
 	show_interfaces(ctx);
+	printf("\n");
+	show_local_sids(ctx);
 
 	// Free connection
  	rv = vapi_disconnect (ctx);
