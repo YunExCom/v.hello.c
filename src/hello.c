@@ -96,6 +96,7 @@ sr_localsids_dump_cb (struct vapi_ctx_s *ctx, void *callback_ctx,
 	if (is_last) {
 		return VAPI_OK;
 	}
+
 	ip6_address_t *addr = (ip6_address_t *)reply->addr;
 	printf ("show_sr_localsids: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n"
 		" behavior\t: %u\n iface/table\t: %u\n",
@@ -106,11 +107,48 @@ sr_localsids_dump_cb (struct vapi_ctx_s *ctx, void *callback_ctx,
 }
 
 vapi_error_e
-show_local_sids(vapi_ctx_t ctx) {
+show_sr_local_sids(vapi_ctx_t ctx) {
 	vapi_error_e rv = 0;
 	vapi_msg_sr_localsids_dump *dump = vapi_alloc_sr_localsids_dump (ctx);
 
 	GO(vapi_sr_localsids_dump (ctx, dump, sr_localsids_dump_cb, NULL));
+
+	return rv;
+}
+
+vapi_error_e
+sr_localsid_add_del_cb (vapi_ctx_t ctx, void *caller_ctx,
+		    vapi_error_e rv, bool is_last,
+		    vapi_payload_sr_localsid_add_del_reply * p) {
+  return VAPI_OK;
+}
+
+vapi_error_e
+add_sr_local_sids(vapi_ctx_t ctx) {
+	vapi_error_e rv = 0;
+	vapi_msg_sr_localsid_add_del *add = vapi_alloc_sr_localsid_add_del (ctx);
+	ip6_address_t *addr = (ip6_address_t *)add->payload.localsid;
+
+	add->payload.is_del = false;
+	addr->as_u16[0] = 0x3300;
+	addr->as_u16[1] = 0x0100;
+	add->payload.behavior = 2;
+	GO(vapi_sr_localsid_add_del (ctx, add, sr_localsid_add_del_cb, NULL));
+
+	return rv;
+}
+
+vapi_error_e
+del_sr_local_sids(vapi_ctx_t ctx) {
+	vapi_error_e rv = 0;
+	vapi_msg_sr_localsid_add_del *del = vapi_alloc_sr_localsid_add_del (ctx);
+	ip6_address_t *addr = (ip6_address_t *)del->payload.localsid;
+
+	del->payload.is_del = true;
+	addr->as_u16[0] = 0x3300;
+	addr->as_u16[1] = 0x0100;
+	del->payload.behavior = 2;
+	GO(vapi_sr_localsid_add_del (ctx, del, sr_localsid_add_del_cb, NULL));
 
 	return rv;
 }
@@ -141,7 +179,9 @@ hello() {
 	printf ("\n");
 	show_interfaces(ctx);
 	printf("\n");
-	show_local_sids(ctx);
+	add_sr_local_sids(ctx);
+	show_sr_local_sids(ctx);
+	del_sr_local_sids(ctx);
 
 	// Free connection
  	rv = vapi_disconnect (ctx);
