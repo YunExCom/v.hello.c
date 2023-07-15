@@ -24,6 +24,16 @@
 #include <vapi/interface.api.vapi.h>
 #include <vapi/l2.api.vapi.h>
 
+typedef struct {
+	bool last_called;
+	size_t num_ifs;
+	u32 *sw_if_indexes;
+	bool *seen;
+	int called;
+} sw_interface_dump_ctx;
+
+#define GO(api)		while (VAPI_EAGAIN == (rv = (api)));
+
 const char * hello ();
 
 #endif /* _HELLO_H_ */
